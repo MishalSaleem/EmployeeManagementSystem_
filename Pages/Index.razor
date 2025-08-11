@@ -1,0 +1,185 @@
+﻿@page "/"
+@inject EmployeeService employeeService
+@inject DepartmentService departmentService
+@inject LocationService locationService
+@using EmployeeManagementSystem.Models
+@using EmployeeManagementSystem.Data
+
+<PageTitle>Dashboard - Employee Management System</PageTitle>
+
+<div class="container-fluid">
+    <h3 class="page-header">Dashboard</h3>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Employees</h5>
+                            <h2 class="card-text">@employeeCount</h2>
+                        </div>
+                        <div class="display-4">
+                            <span class="oi oi-people"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Departments</h5>
+                            <h2 class="card-text">@departmentCount</h2>
+                        </div>
+                        <div class="display-4">
+                            <span class="oi oi-grid-three-up"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Locations</h5>
+                            <h2 class="card-text">@locationCount</h2>
+                        </div>
+                        <div class="display-4">
+                            <span class="oi oi-map-marker"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Avg. Salary</h5>
+                            <h2 class="card-text">@($"{averageSalary:C0}")</h2>
+                        </div>
+                        <div class="display-4">
+                            <span class="oi oi-dollar"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Departments Overview</h5>
+                </div>
+                <div class="card-body">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Employees</th>
+                                <th>Average Salary</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dept in departments)
+                            {
+                                <tr>
+                                    <td>@dept.DepartmentName</td>
+                                    <td>@GetEmployeeCountByDept(dept.DepartmentID)</td>
+                                    <td>@($"{GetAverageSalaryByDept(dept.DepartmentID):C0}")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Recent Employees</h5>
+                </div>
+                <div class="card-body">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Salary</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var emp in recentEmployees)
+                            {
+                                <tr>
+                                    <td>@emp.FirstName @emp.LastName</td>
+                                    <td>@GetDepartmentName(emp.DepartmentID)</td>
+                                    <td>@($"{emp.Salary:C0}")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Employee> employees = new();
+    private List<Department> departments = new();
+    private List<Location> locations = new();
+    private List<Employee> recentEmployees = new();
+
+    private int employeeCount = 0;
+    private int departmentCount = 0;
+    private int locationCount = 0;
+    private decimal averageSalary = 0;
+
+    protected override void OnInitialized()
+    {
+        LoadData();
+    }
+
+    void LoadData()
+    {
+        employees = employeeService.GetAllEmployees();
+        departments = departmentService.GetAllDepartments();
+        locations = locationService.GetAllLocations();
+
+        employeeCount = employees.Count;
+        departmentCount = departments.Count;
+        locationCount = locations.Count;
+
+        if (employees.Any())
+        {
+            averageSalary = employees.Average(e => e.Salary);
+            recentEmployees = employees.OrderByDescending(e => e.EmployeeID).Take(5).ToList();
+        }
+    }
+
+    int GetEmployeeCountByDept(int deptId)
+    {
+        return employees.Count(e => e.DepartmentID == deptId);
+    }
+
+    decimal GetAverageSalaryByDept(int deptId)
+    {
+        var deptEmployees = employees.Where(e => e.DepartmentID == deptId).ToList();
+        return deptEmployees.Any() ? deptEmployees.Average(e => e.Salary) : 0;
+    }
+
+    string GetDepartmentName(int deptId)
+    {
+        var dept = departments.FirstOrDefault(d => d.DepartmentID == deptId);
+        return dept?.DepartmentName ?? "Unknown";
+    }
+}

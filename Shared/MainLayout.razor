@@ -1,0 +1,25 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>Employee Management System</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <h2 class="text-primary">Employee Management System</h2>
+            <div class="ml-auto">
+                <span class="oi oi-person"></span> Admin
+                <a href="https://docs.microsoft.com/aspnet/" target="_blank" class="ml-3">About</a>
+            </div>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<link href="css/custom.css" rel="stylesheet" />

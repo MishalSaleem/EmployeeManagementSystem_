@@ -1,0 +1,240 @@
+﻿@page "/employees"
+@inject EmployeeService employeeService
+@inject DepartmentService departmentService
+@inject IJSRuntime JS
+@using EmployeeManagementSystem.Models
+
+<div class="container-fluid">
+    <h3 class="page-header">Employee List</h3>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert @(isSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <table class="styled-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Salary</th>
+                        <th>Department</th>
+                        <th>Location</th>
+                        <th>Manager</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in employees)
+                    {
+                        <tr>
+                            <td>@emp.EmployeeID</td>
+                            <td>@emp.FirstName @emp.LastName</td>
+                            <td>@($"{emp.Salary:C2}")</td>
+                            <td>@GetDepartmentName(emp.DepartmentID)</td>
+                            <td>@emp.LocationID</td>
+                            <td>@GetManagerName(emp.ManagerID)</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm action-btn" @onclick="() => EditEmployee(emp)">
+                                        <i class="oi oi-pencil"></i> Edit
+                                    </button>
+                                    <button class="btn btn-danger btn-sm action-btn" @onclick="() => DeleteEmployeeAsync(emp.EmployeeID)">
+                                        <i class="oi oi-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <h4 class="form-title">@(isEditing ? "Edit Employee" : "Add Employee")</h4>
+        <EditForm Model="@newEmployee" OnValidSubmit="SaveEmployeeAsync">
+            <DataAnnotationsValidator />
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <InputText placeholder="First Name" @bind-Value="newEmployee.FirstName" class="form-control" />
+                        <ValidationMessage For="@(() => newEmployee.FirstName)" />
+                    </div>
+                    <div class="form-group">
+                        <InputText placeholder="Last Name" @bind-Value="newEmployee.LastName" class="form-control" />
+                        <ValidationMessage For="@(() => newEmployee.LastName)" />
+                    </div>
+                    <div class="form-group">
+                        <InputNumber placeholder="Salary" @bind-Value="newEmployee.Salary" class="form-control" />
+                        <ValidationMessage For="@(() => newEmployee.Salary)" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <InputSelect @bind-Value="newEmployee.DepartmentID" class="form-control">
+                            <option value="0">-- Select Department --</option>
+                            @foreach (var dept in departments)
+                            {
+                                <option value="@dept.DepartmentID">@dept.DepartmentName</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => newEmployee.DepartmentID)" />
+                    </div>
+                    <div class="form-group">
+                        <InputNumber placeholder="Location ID" @bind-Value="newEmployee.LocationID" class="form-control" />
+                        <ValidationMessage For="@(() => newEmployee.LocationID)" />
+                    </div>
+                    <div class="form-group">
+                        <InputNumber placeholder="Manager ID" @bind-Value="newEmployee.ManagerID" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="oi oi-@(isEditing ? "check" : "plus")"></i> @(isEditing ? "Update" : "Add")
+                    </button>
+                    @if (isEditing)
+                    {
+                        <button type="button" class="btn btn-secondary ml-2" @onclick="CancelEdit">
+                            <i class="oi oi-x"></i> Cancel
+                        </button>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private List<Employee> employees = new();
+    private Employee newEmployee = new();
+    private List<Department> departments = new();
+    private bool isEditing = false;
+    private int editingId = 0;
+    private string message = string.Empty;
+    private bool isSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployeesAsync();
+        await LoadDepartmentsAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        try
+        {
+            employees = await Task.Run(() => employeeService.GetAllEmployees());
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Error loading employees: {ex.Message}", false);
+        }
+    }
+
+    private async Task LoadDepartmentsAsync()
+    {
+        try
+        {
+            departments = await Task.Run(() => departmentService.GetAllDepartments());
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Error loading departments: {ex.Message}", false);
+        }
+    }
+
+    private async Task SaveEmployeeAsync()
+    {
+        try
+        {
+            if (isEditing)
+            {
+                await Task.Run(() => employeeService.UpdateEmployee(newEmployee));
+                ShowMessage("Employee updated successfully!", true);
+            }
+            else
+            {
+                await Task.Run(() => employeeService.AddEmployee(newEmployee));
+                ShowMessage("Employee added successfully!", true);
+            }
+            newEmployee = new();
+            isEditing = false;
+            await LoadEmployeesAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Error saving employee: {ex.Message}", false);
+        }
+    }
+
+    private void EditEmployee(Employee emp)
+    {
+        isEditing = true;
+        editingId = emp.EmployeeID;
+        newEmployee = new Employee
+        {
+            EmployeeID = emp.EmployeeID,
+            FirstName = emp.FirstName,
+            LastName = emp.LastName,
+            Salary = emp.Salary,
+            DepartmentID = emp.DepartmentID,
+            LocationID = emp.LocationID,
+            ManagerID = emp.ManagerID
+        };
+    }
+
+    private async Task DeleteEmployeeAsync(int id)
+    {
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this employee?"))
+            {
+                return;
+            }
+
+            await Task.Run(() => employeeService.DeleteEmployee(id));
+            ShowMessage("Employee deleted successfully!", true);
+            await LoadEmployeesAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Error deleting employee: {ex.Message}", false);
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        newEmployee = new();
+        message = string.Empty;
+    }
+
+    private string GetDepartmentName(int deptId)
+    {
+        var dept = departments.FirstOrDefault(d => d.DepartmentID == deptId);
+        return dept?.DepartmentName ?? $"Dept ID: {deptId}";
+    }
+
+    private string GetManagerName(int managerId)
+    {
+        var manager = employees.FirstOrDefault(e => e.EmployeeID == managerId);
+        return manager != null ? $"{manager.FirstName} {manager.LastName}" : $"ID: {managerId}";
+    }
+
+    private void ShowMessage(string msg, bool success)
+    {
+        message = msg;
+        isSuccess = success;
+        StateHasChanged();
+    }
+}

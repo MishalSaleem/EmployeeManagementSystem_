@@ -1,0 +1,11 @@
+@using System.Linq.Expressions
+@typeparam TValue
+
+<div class="validation-message">
+    <ValidationMessage For="ValueExpression" />
+</div>
+
+@code {
+    [Parameter]
+    public Expression<Func<TValue>> ValueExpression { get; set; } = default!;
+}

@@ -1,0 +1,187 @@
+﻿@page "/departments"
+@inject DepartmentService departmentService
+@inject IJSRuntime JS
+@using EmployeeManagementSystem.Models
+@using EmployeeManagementSystem.Data
+@using Microsoft.JSInterop
+
+<div class="container-fluid">
+    <h3 class="page-header">Departments</h3>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert @(isSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <table class="styled-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var dept in departments)
+                    {
+                        <tr>
+                            <td>@dept.DepartmentID</td>
+                            <td>@dept.DepartmentName</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm action-btn" @onclick="() => EditDepartment(dept)">
+                                        <i class="oi oi-pencil"></i> Edit
+                                    </button>
+                                    <button class="btn btn-danger btn-sm action-btn" @onclick="() => DeleteDepartmentAsync(dept.DepartmentID)">
+                                        <i class="oi oi-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <h4 class="form-title">@(isEditing ? "Edit Department" : "Add Department")</h4>
+        
+        <EditForm Model="@newDepartment" OnValidSubmit="SaveDepartmentAsync">
+            <DataAnnotationsValidator />
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <InputText placeholder="Department Name" @bind-Value="newDepartment.DepartmentName" class="form-control" />
+                        <ValidationMessage For="@(() => newDepartment.DepartmentName)" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="oi oi-@(isEditing ? "check" : "plus")"></i> @(isEditing ? "Update" : "Add") Department
+                    </button>
+                    @if (isEditing)
+                    {
+                        <button type="button" class="btn btn-secondary ml-2" @onclick="CancelEdit">
+                            <i class="oi oi-x"></i> Cancel
+                        </button>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private List<Department> departments = new();
+    private Department newDepartment = new();
+    private bool isEditing = false;
+    private int editingId = 0;
+    private string message = string.Empty;
+    private bool isSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDepartmentsAsync();
+    }
+
+    private async Task LoadDepartmentsAsync()
+    {
+        departments = await departmentService.GetAllDepartmentsAsync();
+        StateHasChanged();
+    }
+
+    private async Task SaveDepartmentAsync()
+    {
+        try 
+        {
+            if (isEditing)
+            {
+                var result = await departmentService.UpdateDepartmentAsync(newDepartment);
+                if (result.success)
+                {
+                    ShowMessage("Department updated successfully!", true);
+                    isEditing = false;
+                }
+                else 
+                {
+                    ShowMessage(result.message, false);
+                    return;
+                }
+            }
+            else
+            {
+                var result = await departmentService.AddDepartmentAsync(newDepartment);
+                if (!result.success)
+                {
+                    ShowMessage(result.message, false);
+                    return;
+                }
+                ShowMessage("Department added successfully!", true);
+            }
+            newDepartment = new();
+            await LoadDepartmentsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"An error occurred: {ex.Message}", false);
+        }
+    }
+
+    private void EditDepartment(Department dept)
+    {
+        isEditing = true;
+        editingId = dept.DepartmentID;
+        newDepartment = new Department
+        {
+            DepartmentID = dept.DepartmentID,
+            DepartmentName = dept.DepartmentName
+        };
+    }
+
+    private async Task DeleteDepartmentAsync(int id)
+    {
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this department?"))
+            {
+                return;
+            }
+
+            var result = await departmentService.DeleteDepartmentAsync(id);
+            if (result.success)
+            {
+                ShowMessage("Department deleted successfully!", true);
+                await LoadDepartmentsAsync();
+            }
+            else
+            {
+                ShowMessage(result.message, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"An error occurred while deleting: {ex.Message}", false);
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        newDepartment = new();
+        message = string.Empty;
+    }
+
+    private void ShowMessage(string msg, bool success)
+    {
+        message = msg;
+        isSuccess = success;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,8 @@
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.csproj.AssemblyReference.cache
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.AssemblyInfoInputs.cache
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.AssemblyInfo.cs
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.csproj.CoreCompileInputs.cache
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.RazorAssemblyInfo.cache
+C:\Users\Dell\source\repos\EmployeeManagementSystem\EmployeeManagementSystem\obj\Debug\net7.0\EmployeeManagementSystem.RazorAssemblyInfo.cs

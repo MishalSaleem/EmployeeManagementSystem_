@@ -1,0 +1,181 @@
+﻿@page "/locations"
+@inject LocationService locationService
+@inject IJSRuntime JS
+@using EmployeeManagementSystem.Models
+
+<div class="container-fluid">
+    <h3 class="page-header">Locations</h3>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert @(isSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <table class="styled-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>City</th>
+                        <th>Country</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var loc in locations)
+                    {
+                        <tr>
+                            <td>@loc.LocationID</td>
+                            <td>@loc.City</td>
+                            <td>@loc.Country</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm action-btn" @onclick="() => EditLocation(loc)">
+                                        <i class="oi oi-pencil"></i> Edit
+                                    </button>
+                                    <button class="btn btn-danger btn-sm action-btn" @onclick="() => DeleteLocationAsync(loc.LocationID)">
+                                        <i class="oi oi-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <h4 class="form-title">@(isEditing ? "Edit Location" : "Add Location")</h4>
+        
+        <EditForm Model="@newLocation" OnValidSubmit="SaveLocationAsync">
+            <DataAnnotationsValidator />
+            
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="form-group">
+                        <InputText placeholder="City" @bind-Value="newLocation.City" class="form-control" />
+                        <ValidationMessage For="@(() => newLocation.City)" />
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="form-group">
+                        <InputText placeholder="Country" @bind-Value="newLocation.Country" class="form-control" />
+                        <ValidationMessage For="@(() => newLocation.Country)" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="oi oi-@(isEditing ? "check" : "plus")"></i> @(isEditing ? "Update" : "Add")
+                    </button>
+                    @if (isEditing)
+                    {
+                        <button type="button" class="btn btn-secondary w-100 mt-2" @onclick="CancelEdit">
+                            <i class="oi oi-x"></i> Cancel
+                        </button>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private List<Location> locations = new();
+    private Location newLocation = new();
+    private bool isEditing = false;
+    private int editingId = 0;
+    private string message = string.Empty;
+    private bool isSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLocationsAsync();
+    }
+
+    private async Task LoadLocationsAsync()
+    {
+        try
+        {
+            locations = await Task.Run(() => locationService.GetAllLocations());
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Error loading locations: {ex.Message}", false);
+        }
+    }
+    
+    private async Task SaveLocationAsync()
+    {
+        try
+        {
+            if (isEditing)
+            {
+                await Task.Run(() => locationService.UpdateLocation(newLocation));
+                ShowMessage("Location updated successfully!", true);
+                isEditing = false;
+            }
+            else
+            {
+                await Task.Run(() => locationService.AddLocation(newLocation));
+                ShowMessage("Location added successfully!", true);
+            }
+            newLocation = new();
+            await LoadLocationsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Error saving location: {ex.Message}", false);
+        }
+    }
+    
+    private void EditLocation(Location location)
+    {
+        isEditing = true;
+        editingId = location.LocationID;
+        newLocation = new Location
+        {
+            LocationID = location.LocationID,
+            City = location.City,
+            Country = location.Country
+        };
+    }
+    
+    private void CancelEdit()
+    {
+        isEditing = false;
+        newLocation = new();
+        message = string.Empty;
+    }
+
+    private async Task DeleteLocationAsync(int id)
+    {
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this location?"))
+            {
+                return;
+            }
+
+            await Task.Run(() => locationService.DeleteLocation(id));
+            ShowMessage("Location deleted successfully!", true);
+            await LoadLocationsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Error deleting location: {ex.Message}", false);
+        }
+    }
+
+    private void ShowMessage(string msg, bool success)
+    {
+        message = msg;
+        isSuccess = success;
+        StateHasChanged();
+    }
+}
